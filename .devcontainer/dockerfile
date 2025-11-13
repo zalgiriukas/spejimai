@@ -1,0 +1,8 @@
+# Bazinis Node 20 vaizdas su „devcontainers“ patobulinimais
+FROM mcr.microsoft.com/devcontainers/javascript-node:20
+
+# (Nebūtina) papildomi įrankiai
+RUN apt-get update && apt-get install -y git curl ca-certificates && rm -rf /var/lib/apt/lists/*
+
+# Darbinė direktorija (bus perrašyta workspace mount'u)
+WORKDIR /workspaces/app
