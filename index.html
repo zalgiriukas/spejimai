@@ -18,7 +18,7 @@
     .row{display:grid;grid-template-columns:200px 1fr;gap:12px;align-items:center}
     @media (max-width:640px){.row{grid-template-columns:1fr}}
     label.name{font-weight:600}
-    input[type=text], select{width:100%;padding:10px 12px;border-radius:8px;border:1px solid #2a2f4a;background:#0e1122;color:var(--text)}
+    input[type=text]{width:100%;padding:10px 12px;border-radius:8px;border:1px solid #2a2f4a;background:#0e1122;color:var(--text)}
     input[disabled]{opacity:.6}
     .hint{color:var(--muted);font-size:12px;margin-top:4px}
     .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
@@ -26,6 +26,7 @@
     .btns{display:flex;gap:8px;flex-wrap:wrap}
     button{appearance:none;border:none;cursor:pointer;border-radius:10px;padding:10px 14px;font-weight:600;background:var(--accent);color:#0b1a12;box-shadow:0 0 0 1px #1a2b22 inset,0 6px 18px rgba(43,214,123,.25)}
     button.secondary{background:#2b3153;color:var(--text);box-shadow:0 0 0 1px #2a2f4a inset}
+    button.danger{background:var(--danger);color:#290a0a}
     button:disabled{opacity:.6;cursor:not-allowed}
     .tiny-reset{position:static;margin:24px auto 0 auto;display:block;font-size:11px;line-height:1;padding:6px 8px;border-radius:6px;background:#2b3153;color:#cbd3e6;border:1px solid #2a2f4a;opacity:.9}
     .tiny-reset:hover{opacity:1}
@@ -39,9 +40,6 @@
     summary{cursor:pointer;color:var(--muted)}
     .toast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#0e1122;border:1px solid #283055;color:var(--text);padding:10px 14px;border-radius:10px;opacity:0;transition:opacity .2s, transform .2s;pointer-events:none;z-index:999}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
-    .inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    code.inline{background:#0e1122;border:1px solid #283055;border-radius:6px;padding:2px 6px;color:#bcd8ff}
-    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
   </style>
 </head>
 <body>
@@ -57,46 +55,19 @@
     <div class="grid">
       <section class="card">
         <h2 style="margin-top:0">Spėjimai</h2>
-        <p class="note">Įrašykite <b>taškų skirtumą</b> (Žalgirio persvara): pvz., <b>+7</b> reiškia, kad Žalgiris laimės 7 taškais, <b>-3</b> – pralaimės 3 taškais. <br> 
-          <b>Taisyklės:</b> <b>+2</b> taškai už tikslų pataikymą, jei tikslių nėra – artimiausi gauna <b>+1</b>.
+        <p class="note">Įrašykite <b>taškų skirtumą</b> (Žalgirio persvara): pvz., <b>+7</b> reiškia, kad Žalgiris laimės 7 taškais, <b>-3</b> – pralaimės 3 taškais. <br>
+          <b>Taisyklės:</b> arčiausiai oficialaus – <b>1 taškas</b>, <b>tikslus pataikymas</b> – <b>2 taškai</b>.
         </p>
         <div id="guesses"></div>
       </section>
 
       <section class="card">
         <h2 style="margin-top:0">Oficialus rezultatas</h2>
-
-        <div class="row" style="margin-bottom:8px">
-          <label class="name">Rungtynių parinkiklis</label>
-          <div>
-            <div class="inline" style="margin-bottom:8px">
-              <select id="season"></select>
-              <button id="btn-load" class="secondary">Įkelti Žalgirio tvarkaraštį</button>
-            </div>
-            <select id="gamePicker" style="display:none"></select>
-            <div class="hint">Pasirinkus rungtynes, kodai automatiškai užpildomi ir (jei rungtynės baigtos) paimamas oficialus rezultatas.</div>
-          </div>
-        </div>
-
-        <div class="row" style="margin-bottom:8px">
-          <label for="ref" class="name">Nuoroda / kodai</label>
-          <div>
-            <input id="ref" type="text" placeholder="Įklijuokite Eurolygos rungtynių nuorodą arba pvz. E2025/54" />
-            <div class="hint">Palaikomi formatai: nuoroda su <code class="inline">seasoncode=E2025&gamecode=54</code>, arba <code class="inline">E2025/54</code>, <code class="inline">E2025-54</code>.</div>
-          </div>
-        </div>
-
         <div class="row" style="margin-bottom:12px">
           <label for="official" class="name">Žalgirio taškų skirtumas</label>
-          <div>
-            <input id="official" type="text" inputmode="numeric" placeholder="pvz. +7 arba -3" />
-            <div class="inline" style="margin-top:8px">
-              <button id="btn-fetch" class="secondary">Gauti rezultatą automatiškai</button>
-              <span id="autoStatus" class="hint"></span>
-            </div>
-            <div class="hint">Duomenys imami iš <i>EuroLeague Live</i> API (Boxscore/Points/Header). Jei naršyklė blokuoja (CORS), liks rankinė įvestis.</div>
-          </div>
+          <input id="official" type="text" inputmode="numeric" placeholder="pvz. +7 arba -3" />
         </div>
+        <p class="hint">Įrašykite oficialų taškų skirtumą po rungtynių. (Automatinis paėmimas – išjungtas.)</p>
 
         <h3>Turnyrinė lentelė</h3>
         <table>
@@ -121,59 +92,83 @@
   <script>
     const PLAYERS = ["Rosita","Valdas","Virginija","Vincas","Benas","Aiguste","Karolis","Aiste","Paulius"];
 
-    const ls = { read(k,f){try{return JSON.parse(localStorage.getItem(k)) ?? f}catch{return f}}, write(k,v){localStorage.setItem(k,JSON.stringify(v))} };
+    const ls = { read(key, fallback){try{ return JSON.parse(localStorage.getItem(key)) ?? fallback;}catch{ return fallback;}}, write(key, val){ localStorage.setItem(key, JSON.stringify(val)); } };
 
     const state = {
-      points: ls.read('points', {}), guesses: ls.read('guesses', {}), roundScored: ls.read('roundScored', false), history: ls.read('history', [])
+      points: ls.read('points', {}),           // { name: number }
+      guesses: ls.read('guesses', {}),         // { name: string }
+      roundScored: ls.read('roundScored', false),
+      history: ls.read('history', [])          // [{ dateISO, official, winners:[name], exact:[name], guessesSnapshot:{name:val} }]
     };
+
+    // Ensure all players exist in points
     PLAYERS.forEach(n => { if(!(n in state.points)) state.points[n] = 0; });
 
     const $guesses = document.getElementById('guesses');
     const $scoreboard = document.getElementById('scoreboard');
     const $history = document.getElementById('history');
     const $official = document.getElementById('official');
-    const $ref = document.getElementById('ref');
-    const $autoStatus = document.getElementById('autoStatus');
-    const $season = document.getElementById('season');
-    const $gamePicker = document.getElementById('gamePicker');
 
     function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(()=> t.classList.remove('show'), 2000); }
 
-    function parseDiff(v){ if(typeof v!=='string') return null; v=v.trim(); if(!v) return null; const m=v.match(/^([+\-])?\s*(\d{1,3})$/); if(!m) return null; const s=m[1]==='-'?-1:1; const n=parseInt(m[2],10); return s*n; }
+    function parseDiff(v){
+      if(typeof v !== 'string') return null;
+      v = v.trim(); if(!v) return null;
+      const m = v.match(/^([+\-])?\s*(\d{1,3})$/); if(!m) return null;
+      const sign = m[1] === '-' ? -1 : 1; const num = parseInt(m[2], 10); return sign * num;
+    }
 
     function renderGuesses(){
-      $guesses.innerHTML='';
-      PLAYERS.forEach(name=>{
-        const row=document.createElement('div'); row.className='row';
-        const label=document.createElement('label'); label.className='name'; label.textContent=name; label.setAttribute('for',`g_${name}`);
-        const input=document.createElement('input'); input.type='text'; input.inputMode='numeric'; input.placeholder='+7 arba -3'; input.id=`g_${name}`; input.value=state.guesses[name]??''; input.disabled=!!state.roundScored;
-        input.addEventListener('change',()=>{ state.guesses[name]=input.value.trim(); ls.write('guesses', state.guesses); renderScoreboard(); });
-        const wrap=document.createElement('div'); wrap.appendChild(input);
-        const hint=document.createElement('div'); hint.className='hint'; hint.textContent='Vienas spėjimas: įveskite tik taškų skirtumą'; wrap.appendChild(hint);
-        row.append(label,wrap); $guesses.appendChild(row);
+      $guesses.innerHTML = '';
+      PLAYERS.forEach(name => {
+        const row = document.createElement('div'); row.className = 'row';
+        const label = document.createElement('label'); label.className = 'name'; label.textContent = name; label.setAttribute('for', `g_${name}`);
+
+        const input = document.createElement('input');
+        input.type = 'text'; input.inputMode = 'numeric'; input.placeholder = '+7 arba -3'; input.id = `g_${name}`;
+        input.value = state.guesses[name] ?? '';
+        input.disabled = !!state.roundScored; // po suskaičiavimo – užrakinti iki naujo turo
+        input.addEventListener('change', () => {
+          state.guesses[name] = input.value.trim();
+          ls.write('guesses', state.guesses);
+          renderScoreboard();
+        });
+
+        const wrap = document.createElement('div');
+        wrap.appendChild(input);
+        const hint = document.createElement('div');
+        hint.className = 'hint';
+        hint.textContent = 'Vienas spėjimas: įveskite tik taškų skirtumą';
+        wrap.appendChild(hint);
+
+        row.appendChild(label);
+        row.appendChild(wrap);
+        $guesses.appendChild(row);
       });
     }
 
-    function renderScoreboard(lastWinners=[], exact=[]){
-      $scoreboard.innerHTML='';
-      PLAYERS.forEach(name=>{
-        const tr=document.createElement('tr'); if(lastWinners.includes(name)) tr.classList.add('winner');
-        const tdN=document.createElement('td'); tdN.textContent=name;
-        const tdP=document.createElement('td'); tdP.innerHTML = `<span class="tag">${state.points[name]??0}</span>` + (exact.includes(name)?' <span class="hint">(+2)</span>':'');
-        const tdG=document.createElement('td'); tdG.textContent=state.guesses[name]??'';
-        tr.append(tdN,tdP,tdG); $scoreboard.appendChild(tr);
+    function renderScoreboard(lastWinners = [], exact = []){
+      $scoreboard.innerHTML = '';
+      PLAYERS.forEach(name => {
+        const tr = document.createElement('tr');
+        if(lastWinners.includes(name)) tr.classList.add('winner');
+        const tdN = document.createElement('td'); tdN.textContent = name;
+        const tdP = document.createElement('td'); tdP.innerHTML = `<span class="tag">${state.points[name] ?? 0}</span>` + (exact.includes(name) ? ' <span class="hint">(+2)</span>' : '');
+        const tdG = document.createElement('td'); tdG.textContent = state.guesses[name] ?? '';
+        tr.append(tdN, tdP, tdG);
+        $scoreboard.appendChild(tr);
       });
     }
 
     function renderHistory(){
-      if(!state.history.length){ $history.textContent='Dar nėra įrašų.'; return; }
-      $history.innerHTML=state.history.map(h=>{
-        const date=new Date(h.dateISO).toLocaleString();
-        const winners=h.winners.join(', ')||'—';
-        const exact=h.exact.length?` (tikslūs: ${h.exact.join(', ')})`:'';
-        const gList=Object.entries(h.guessesSnapshot).map(([n,v])=>`${n}: ${v||'—'}`).join(' · ');
+      if(!state.history.length){ $history.textContent = 'Dar nėra įrašų.'; return; }
+      $history.innerHTML = state.history.map(h => {
+        const date = new Date(h.dateISO).toLocaleString();
+        const winners = h.winners.join(', ') || '—';
+        const exact = h.exact.length ? ` (tikslūs: ${h.exact.join(', ')})` : '';
+        const gList = Object.entries(h.guessesSnapshot).map(([n,v])=>`${n}: ${v || '—'}`).join(' · ');
         return `<div style="margin:6px 0;padding:8px;border:1px solid #2a2f4a;border-radius:8px">`+
-               `<div><b>${date}</b> · Oficialus: <b>${h.official>0? '+'+h.official:h.official}</b></div>`+
+               `<div><b>${date}</b> · Oficialus: <b>${h.official > 0 ? '+'+h.official : h.official}</b></div>`+
                `<div>Nugalėtojai: ${winners}${exact}</div>`+
                `<div class="hint">${gList}</div>`+
                `</div>`;
@@ -182,102 +177,81 @@
 
     function scoreRound(){
       if(state.roundScored){ toast('Šis turas jau suskaičiuotas. Spauskite „Naujos rungtynės“.'); return; }
-      const official=parseDiff($official.value); if(official===null){ toast('Įveskite teisingą oficialų skirtumą (pvz., +7 arba -3).'); return; }
-      const parsed=PLAYERS.map(name=>({name, raw:(state.guesses[name]??'').trim(), val:parseDiff(state.guesses[name]??'')})).filter(x=>x.val!==null);
-      if(parsed.length===0){ toast('Nėra galiojančių spėjimų.'); return; }
-      let best=Infinity; parsed.forEach(x=>{ best=Math.min(best, Math.abs(x.val-official)); });
-      const winners=parsed.filter(x=>Math.abs(x.val-official)===best).map(x=>x.name);
-      const exact=parsed.filter(x=>x.val===official).map(x=>x.name);
-      if(exact.length){ exact.forEach(n=>{ state.points[n]=(state.points[n]??0)+2; }); }
-      else { winners.forEach(n=>{ state.points[n]=(state.points[n]??0)+1; }); }
-      const snapshot={}; PLAYERS.forEach(n=>{ snapshot[n]=(state.guesses[n]??'').trim(); });
-      state.history.unshift({ dateISO:new Date().toISOString(), official, winners: exact.length? exact : winners, exact, guessesSnapshot:snapshot });
-      state.roundScored=true; ls.write('points', state.points); ls.write('history', state.history); ls.write('roundScored', state.roundScored);
-      document.querySelectorAll('#guesses input').forEach(i=> i.disabled=true);
-      renderScoreboard(exact.length? exact : winners, exact); renderHistory();
-      toast(exact.length? `Tikslūs (+2): ${exact.join(', ')}` : `Taškas (+1): ${winners.join(', ')}`);
+      const official = parseDiff($official.value);
+      if(official === null){ toast('Įveskite teisingą oficialų skirtumą (pvz., +7 arba -3).'); return; }
+
+      // Collect parsed guesses
+      const parsed = PLAYERS.map(name => ({
+        name,
+        raw: (state.guesses[name] ?? '').trim(),
+        val: parseDiff(state.guesses[name] ?? '')
+      })).filter(x => x.val !== null);
+
+      if(parsed.length === 0){ toast('Nėra galiojančių spėjimų.'); return; }
+
+      // Find winners and exact
+      let best = Infinity;
+      parsed.forEach(x => { best = Math.min(best, Math.abs(x.val - official)); });
+      const winners = parsed.filter(x => Math.abs(x.val - official) === best).map(x => x.name);
+      const exact = parsed.filter(x => x.val === official).map(x => x.name);
+
+      // Scoring: exact -> +2; if none exact, closest -> +1
+      if(exact.length){ exact.forEach(n => { state.points[n] = (state.points[n] ?? 0) + 2; }); }
+      else { winners.forEach(n => { state.points[n] = (state.points[n] ?? 0) + 1; }); }
+
+      // Save history snapshot
+      const snapshot = {};
+      PLAYERS.forEach(n => { snapshot[n] = (state.guesses[n] ?? '').trim(); });
+      state.history.unshift({ dateISO: new Date().toISOString(), official, winners: exact.length ? exact : winners, exact, guessesSnapshot: snapshot });
+
+      state.roundScored = true;
+      ls.write('points', state.points);
+      ls.write('history', state.history);
+      ls.write('roundScored', state.roundScored);
+
+      // Lock inputs for this round
+      document.querySelectorAll('#guesses input').forEach(i => i.disabled = true);
+
+      renderScoreboard(exact.length ? exact : winners, exact);
+      renderHistory();
+
+      toast(exact.length ? `Tikslūs (+2): ${exact.join(', ')}` : `Taškas (+1): ${winners.join(', ')}`);
     }
 
-    function newRound(){ state.roundScored=false; PLAYERS.forEach(n=>{ state.guesses[n]=''; }); ls.write('guesses', state.guesses); ls.write('roundScored', state.roundScored); document.querySelectorAll('#guesses input').forEach(i=>{ i.disabled=false; i.value=''; }); renderScoreboard([]); toast('Naujas turas – sėkmės!'); }
-
-    function resetAll(){ if(!confirm('Tikrai atstatyti VISKĄ? Bus ištrinta: taškai, spėjimai, visa istorija.')) return; state.points={}; PLAYERS.forEach(n=> state.points[n]=0); state.guesses={}; state.history=[]; state.roundScored=false; $official.value=''; $ref.value=''; ls.write('points', state.points); ls.write('guesses', state.guesses); ls.write('history', state.history); ls.write('roundScored', state.roundScored); renderGuesses(); renderScoreboard([]); renderHistory(); toast('Viskas atstatyta.'); }
-
-    // ---------- Automatinis rezultatų paėmimas ----------
-    function parseGameRef(val){ if(!val) return null; val=String(val).trim(); let seasoncode=null, gamecode=null; try{ const u=new URL(val); const sc=u.searchParams.get('seasoncode'); const gc=u.searchParams.get('gamecode'); if(sc && /^E\d{4}$/.test(sc)) seasoncode=sc; if(gc && /^\d{1,4}$/.test(gc)) gamecode=gc; }catch{} if(!seasoncode){ const m=val.match(/(E\d{4})/i); if(m) seasoncode=m[1].toUpperCase(); } if(!gamecode){ const m2=val.match(/(?:E\d{4}\D{0,3})(\d{1,4})\b/); if(m2) gamecode=m2[1]; } if(!seasoncode || !gamecode){ const m3=val.match(/^(E\d{4})[\/-](\d{1,4})$/i); if(m3){ seasoncode=m3[1].toUpperCase(); gamecode=m3[2]; } } return (seasoncode && gamecode)? {seasoncode, gamecode} : null; }
-
-    async function fetchJson(url){ const r=await fetch(url, {mode:'cors'}); if(!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }
-
-    function findTeamSide(data){ const flat=JSON.stringify(data).toLowerCase(); const hasZ = flat.includes('zalgiris') || flat.includes('kaunas') || flat.includes(' zal '); if(!hasZ) return null; if(/teama[^"]*(zalgiris|kaunas| zal )/.test(flat)) return 'A'; if(/teamb[^"]*(zalgiris|kaunas| zal )/.test(flat)) return 'B'; return null; }
-
-    function extractTotals(data){ let a=null,b=null; function walk(o){ if(!o||typeof o!=='object') return; if(Array.isArray(o)){ o.forEach(walk); return; } const keys=Object.keys(o); const nums=Object.entries(o).filter(([k,v])=> typeof v==='number' && v>=0 && v<=200).map(([k,v])=>({k,v})); if(keys.some(x=>/score|points|total|final/i.test(x)) && nums.length>=2 && a===null){ a=nums[0].v; b=nums[1].v; } for(const v of Object.values(o)) walk(v); }
-      walk(data); return (a!=null && b!=null)? {A:a, B:b} : null; }
-
-    async function autoFetchOfficial(){ const ref=parseGameRef($ref.value); if(!ref){ toast('Įrašykite teisingą nuorodą arba kodus (pvz., E2025/54).'); return; } $autoStatus.textContent='Kraunama…'; const urls=[ `https://live.euroleague.net/api/Boxscore?gamecode=${ref.gamecode}&seasoncode=${ref.seasoncode}`, `https://live.euroleague.net/api/Points?gamecode=${ref.gamecode}&seasoncode=${ref.seasoncode}`, `https://live.euroleague.net/api/Header?gamecode=${ref.gamecode}&seasoncode=${ref.seasoncode}` ]; let data=null, from=null; for(const u of urls){ try{ data=await fetchJson(u); from=u; if(data) break; }catch(e){} } if(!data){ $autoStatus.textContent='Nepavyko gauti duomenų. Galimas CORS apribojimas.'; return; } const totals=extractTotals(data); if(!totals){ $autoStatus.textContent='Nerastas galutinis rezultatas.'; return; } let side=findTeamSide(data); let diff=null; if(side==='A') diff=totals.A-totals.B; else if(side==='B') diff=totals.B-totals.A; else { const pickA=confirm(`Nepavyko nustatyti komandos pusės pagal duomenis. Ar Žalgiris buvo namų komanda (Team A)?\n(OK – Taip, CANCEL – Ne)`); diff = pickA? (totals.A-totals.B) : (totals.B-totals.A); } $official.value = (diff>0? '+':'') + diff; $autoStatus.textContent='Gauta iš: '+ from.replace(/^https:\/\//,''); toast('Oficialus skirtumas užpildytas'); }
-
-    // ---------- Rungtynių parinkiklis (tvarkaraštis) ----------
-    function defaultSeasons(){
-      const y=new Date().getFullYear(); // paprastai sezonas = metų pradžia (EYYYY)
-      const cand=[y, y-1, y-2, y-3];
-      $season.innerHTML = cand.map(c=>`<option value="E${c}">Sezonas E${c}</option>`).join('');
-      $season.value = 'E'+y;
+    function newRound(){
+      state.roundScored = false;
+      PLAYERS.forEach(n => { state.guesses[n] = ''; });
+      ls.write('guesses', state.guesses);
+      ls.write('roundScored', state.roundScored);
+      // unlock inputs & clear
+      document.querySelectorAll('#guesses input').forEach(i => { i.disabled = false; i.value=''; });
+      renderScoreboard([]);
+      toast('Naujas turas – sėkmės!');
     }
 
-    function setPickerVisible(vis){ $gamePicker.style.display = vis? 'block':'none'; }
-
-    async function loadSchedule(){
-      setPickerVisible(false); $gamePicker.innerHTML='';
-      const sc=$season.value; if(!/^E\d{4}$/.test(sc)){ toast('Blogas sezono kodas.'); return; }
-      const candidates=[
-        `https://api-live.euroleague.net/v1/schedules?seasoncode=${sc}`,
-        `https://api-live.euroleague.net/v1/games?seasoncode=${sc}`,
-        `https://api-live.euroleague.net/v1/results?seasoncode=${sc}`
-      ];
-      let data=null, from=null;
-      for(const u of candidates){
-        try{ data = await fetchJson(u); from=u; if(data) break; }catch(e){}
-      }
-      if(!data){ toast('Nepavyko įkelti tvarkaraščio (galimi CORS apribojimai).'); return; }
-      // išrinkti tik tas rungtynes, kur žaidžia Žalgiris (tekstas)
-      const flat = [];
-      function walk(o){ if(!o||typeof o!=='object') return; if(Array.isArray(o)){ o.forEach(walk); return; }
-        const text = JSON.stringify(o).toLowerCase();
-        const zal = text.includes('zalgiris') || text.includes('kaunas') || text.includes(' zal ');
-        const gc = (o.gamecode??o.Gamecode??o.gameCode??o.GAMECODE); const season=(o.seasoncode??o.Seasoncode??o.seasonCode??o.SEASONCODE);
-        const date = (o.gamedate??o.GameDate??o.gameday??o.Date??o.date??o.Tipoff??o.Time) || '';
-        const home = (o.hometeam??o.HomeTeam??o.home??o.Home) || ''; const away = (o.awayteam??o.AwayTeam??o.away??o.Away) || '';
-        if(zal && gc && season){ flat.push({seasoncode:String(season), gamecode:String(gc), date:String(date), home:String(home), away:String(away)}); }
-        for(const v of Object.values(o)) walk(v);
-      }
-      walk(data);
-      // pašalinti dublikatus
-      const seen=new Set();
-      const games = flat.filter(g=>{ const key=g.seasoncode+':'+g.gamecode; if(seen.has(key)) return false; seen.add(key); return true; });
-      if(!games.length){ toast('Tvarkaraštyje nerasta Žalgirio rungtynių.'); return; }
-      // suformuoti select
-      games.sort((a,b)=> (a.date||'').localeCompare(b.date||''));
-      $gamePicker.innerHTML = games.map(g=>{
-        const hm = (g.home||'').toLowerCase().includes('zalgiris');
-        const lab = `${(g.date||'').slice(0,16)} – ${(g.home||'').replaceAll('"','')} vs ${(g.away||'').replaceAll('"','')} ${hm? '(namie)':'(svečiuose)'}  [${g.seasoncode}/${g.gamecode}]`;
-        const val = `${g.seasoncode}/${g.gamecode}`;
-        return `<option value="${val}">${lab}</option>`;
-      }).join('');
-      setPickerVisible(true); toast('Tvarkaraštis įkeltas');
+    function resetAll(){
+      if(!confirm('Tikrai atstatyti VISKĄ? Bus ištrinta: taškai, spėjimai, istorija.')) return;
+      state.points = {}; PLAYERS.forEach(n => state.points[n] = 0);
+      state.guesses = {}; state.history = []; state.roundScored = false; $official.value = '';
+      ls.write('points', state.points);
+      ls.write('guesses', state.guesses);
+      ls.write('history', state.history);
+      ls.write('roundScored', state.roundScored);
+      renderGuesses();
+      renderScoreboard([]);
+      renderHistory();
+      toast('Viskas atstatyta.');
     }
-
-    function onPickGame(){ const v=$gamePicker.value; if(!v) return; $ref.value=v; // užpildyti kodus
-      // bandome iškart atsinešti rezultatą (jei jau sužaista)
-      autoFetchOfficial(); }
 
     // Init
-    renderGuesses(); renderScoreboard([]); renderHistory(); defaultSeasons();
+    renderGuesses();
+    renderScoreboard([]);
+    renderHistory();
 
     // Wire buttons
     document.getElementById('btn-score').addEventListener('click', scoreRound);
     document.getElementById('btn-new').addEventListener('click', newRound);
     document.getElementById('btn-reset').addEventListener('click', resetAll);
-    document.getElementById('btn-fetch').addEventListener('click', autoFetchOfficial);
-    document.getElementById('btn-load').addEventListener('click', loadSchedule);
-    $gamePicker.addEventListener('change', onPickGame);
   </script>
 </body>
 </html>
