@@ -1,24 +1,12 @@
+
 {
-  // Pavadinimas, matomas VS Code/Codespaces
   "name": "Zalgiriukas (Netlify Functions + Blobs)",
-
-  // Naudosime paruoštą Node 20 bazinį konteinerį
-  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
-
-  // Aplinka (prireikus gali pridėti savo kintamuosius)
-  "containerEnv": {
-    // Jei NAUDOJI ADMIN_TOKEN apsaugą – čia NERA saugu laikyti.
-    // Geriau dėk jį Netlify aplinkoje. Codespaces bandymams gali įrašyti laikinai:
-    // "ADMIN_TOKEN": "tavo_laikinas_tokenas"
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
   },
-
-  // Kokią workspace direktoriją mountinti
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-
-  // Atidaryti prievadai (Netlify CLI naudoja 8888)
   "forwardPorts": [8888],
-
-  // Rekomenduojami VS Code plėtiniai
   "customizations": {
     "vscode": {
       "extensions": [
@@ -28,13 +16,7 @@
       ]
     }
   },
-
-  // Komandos, kurios paleidžiamos PIRMA kartą po konteinerio sukūrimo
   "postCreateCommand": "npm install && npm install -g netlify-cli",
-
-  // Numatytoji atidarymo komanda, kai atsidarysi konteinerį
   "postStartCommand": "echo 'Ready. Run: netlify dev' && netlify --version",
-
-  // Nustatymai shell'ui ir vartotojui
   "remoteUser": "node"
 }
