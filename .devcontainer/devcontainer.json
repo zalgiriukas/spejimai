@@ -1,0 +1,5 @@
+npm init -y
+npm install @netlify/blobs
+git add package.json package-lock.json
+git commit -m "Add Netlify Blobs dependency"
+git push
