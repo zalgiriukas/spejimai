@@ -1,13 +1,13 @@
 
 [build]
-  publish = "."
+  publish = ""
 
 [[redirects]]
   from = "/api/load"
-  to   = "/.netlify/functions/load"
+  to   = "/netlify/functions/load"
   status = 200
 
 [[redirects]]
   from = "/api/save"
-  to   = "/.netlify/functions/save"
+  to   = "/netlify/functions/save"
   status = 200
