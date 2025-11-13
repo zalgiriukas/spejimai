@@ -1,5 +1,13 @@
 {
+  "name": "zalgiriukas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo \"no build\"",
+    "start": "netlify dev"
+  },
   "dependencies": {
-    "@netlify/blobs": "^5"   // arba naujesnė
+    "@netlify/blobs": "^5.0.0"
   }
 }
